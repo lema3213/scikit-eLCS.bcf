@@ -275,15 +275,15 @@ class ClassifierSet:
     def insertDiscoveredClassifiers(self,elcs,cl1,cl2,clP1,clP2,exploreIter):
         if elcs.do_GA_subsumption:
             elcs.timer.startTimeSubsumption()
-            if len(cl1.specifiedAttList) > 0:
+            if len(cl1.getWorkingCondition()) > 0:
                 self.subsumeClassifier(elcs,cl1,clP1,clP2)
-            if len(cl2.specifiedAttList) > 0:
+            if len(cl2.getWorkingCondition()) > 0:
                 self.subsumeClassifier(elcs,cl2, clP1, clP2)
             elcs.timer.stopTimeSubsumption()
         else:
-            if len(cl1.specifiedAttList) > 0:
+            if len(cl1.getWorkingCondition()) > 0:
                 self.addClassifierToPopulation(elcs,cl1,False)
-            if len(cl2.specifiedAttList) > 0:
+            if len(cl2.getWorkingCondition()) > 0:
                 self.addClassifierToPopulation(elcs,cl2, False)
 
     def subsumeClassifier(self,elcs,cl=None,cl1P=None,cl2P=None):
@@ -296,7 +296,7 @@ class ClassifierSet:
             cl2P.updateNumerosity(1)
             elcs.trackingObj.subsumptionCount += 1
         else:
-            if len(cl.specifiedAttList) > 0:
+            if len(cl.getWorkingCondition()) > 0:
                 self.addClassifierToPopulation(elcs, cl, False)
 
     def deletion(self,elcs,exploreIter):

@@ -15,11 +15,11 @@ import pickle
 import copy
 
 class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
-    def __init__(self, learning_iterations=10000, track_accuracy_while_fit = False, N=1000, p_spec=0.5, discrete_attribute_limit=10,
+    def __init__(self, learning_iterations=10000, track_accuracy_while_fit = True, N=1000, p_spec=0.5, discrete_attribute_limit=10,
                  specified_attributes = np.array([]), nu=5, chi=0.8, mu=0.04, theta_GA=25, theta_del=20, theta_sub=20,
                  acc_sub=0.99, beta=0.2, delta=0.1, init_fit=0.01, fitness_reduction=0.1, do_correct_set_subsumption=False,
                  do_GA_subsumption=True, selection_method='tournament', theta_sel=0.5, random_state = None,match_for_missingness=False,
-                 reboot_filename=None):
+                 reboot_filename=None,cf_rate=0.5,log_dir="",log_trainingfile_name=""):
 
         '''
         :param learning_iterations:      Must be nonnegative integer. The number of training cycles to run.
@@ -235,6 +235,8 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
         self.hasTrained = False
         self.reboot_filename = reboot_filename
 
+        self.cf_rate=cf_rate
+
         # Reboot Population
         if self.reboot_filename != None:
             self.rebootPopulation()
@@ -242,6 +244,11 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
         else:
             self.explorIter = 0
             self.population = ClassifierSet()
+
+
+        log_trainingfile_path = log_dir + log_trainingfile_name
+        self.log_trainingfile = open(log_trainingfile_path, 'w', newline='')
+        self.log_trainingfile.write("IterationNo Accuracy PopulationNumerosity Population\n")
 
     def checkIsInt(self,num):
         try:
@@ -261,7 +268,7 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
             return False
 
     ##*************** Fit ****************
-    def fit(self, X, y):
+    def fit(self, X, y,tx,ty):
         """Scikit-learn required: Supervised training of eLCS
 
         Parameters
@@ -337,6 +344,23 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
             #Increment Instance & Iteration
             self.explorIter+=1
             self.env.newInstance()
+
+            # training accuracy
+            if self.explorIter%100==0:
+                popNmrsty = 0
+                for i in range(len(self.population.popSet)):
+                    popNmrsty += self.population.popSet[i].numerosity
+
+                print("{:d} {:.4f} {:d} {:d}".format(self.explorIter, accuracy, popNmrsty,
+                                                     len(self.population.popSet)))
+                self.log_trainingfile.write("{:d} {:.4f} {:d} {:d}\n".format(self.explorIter, accuracy, popNmrsty,
+                                                                             len(self.population.popSet)))
+
+            # test accuracy
+            if self.explorIter%20000 ==0:
+                accuracy = self.score(tx, ty)
+                print('Test accuracy:'+str(self.explorIter)+':'+str(accuracy))
+
         self.saveFinalMetrics()
         self.hasTrained = True
         return self
@@ -510,7 +534,10 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
     #Comment out score function if continuous phenotype is built in, so that RegressorMixin and ClassifierMixin default methods can be used appropriately
     def score(self,X,y):
         predList = self.predict(X)
-        return balanced_accuracy_score(y, predList) #Make it balanced accuracy
+        accuracy_test = balanced_accuracy_score(y, predList) #Make it balanced accuracy
+        self.log_trainingfile.write("Test Accuracy: {:.4f}".format(accuracy_test))
+        print("Test Accuracy: {:.4f}".format(accuracy_test))
+        return accuracy_test
 
     def export_iteration_tracking_data(self,filename='iterationData.csv'):
         if self.hasTrained:

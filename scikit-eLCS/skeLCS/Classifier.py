@@ -2,10 +2,13 @@ import random
 import copy
 import math
 
+from skeLCS.CodeFragment import CodeFragment
+from skeLCS.Condition import Condition
+
+
 class Classifier:
     def __init__(self,elcs,a=None,b=None,c=None,d=None):
         #Major Parameters
-        self.specifiedAttList = []
         self.condition = []
         self.phenotype = None #arbitrary
 
@@ -51,16 +54,16 @@ class Classifier:
             High = float(phenotype) + rangeRadius
             self.phenotype = [Low, High]
 
-        while len(self.specifiedAttList) < 1:
+        while len(self.getWorkingCondition()) < 1:
             for attRef in range(len(state)):
-                if random.random() < elcs.p_spec and not(state[attRef] == None):
-                    self.specifiedAttList.append(attRef)
-                    self.buildMatch(elcs, attRef, state)  # Add classifierConditionElement
-
+                condition = None
+                if random.random() < elcs.p_spec:
+                    condition = self.buildMatch(elcs,state)  # Add classifierConditionElement
+                if condition is None:
+                    condition = Condition()
+                self.condition.append(condition)
     def classifierCopy(self, toCopy, exploreIter):
-        self.specifiedAttList = copy.deepcopy(toCopy.specifiedAttList)
         self.condition = copy.deepcopy(toCopy.condition)
-
         self.phenotype = copy.deepcopy(toCopy.phenotype)
         self.timeStampGA = exploreIter
         self.initTimeStamp = exploreIter
@@ -68,79 +71,54 @@ class Classifier:
         self.fitness = toCopy.fitness
         self.accuracy = toCopy.accuracy
 
-    def buildMatch(self, elcs, attRef, state):
-        attributeInfoType = elcs.env.formatData.attributeInfoType[attRef]
-        if not(attributeInfoType): #Discrete
-            attributeInfoValue = elcs.env.formatData.attributeInfoDiscrete[attRef]
+    def buildMatch(self, elcs, state):
+        if random.random()<elcs.cf_rate:
+            max_depth = random.randint(1,3)
         else:
-            attributeInfoValue = elcs.env.formatData.attributeInfoContinuous[attRef]
+            max_depth = 0
+        return self.buildCF(elcs, max_depth, state)
 
-        # Continuous attribute
-        if attributeInfoType:
-            attRange = attributeInfoValue[1] - attributeInfoValue[0]
-            rangeRadius = random.randint(25, 75) * 0.01 * attRange / 2.0  # Continuous initialization domain radius.
-            ar = state[attRef]
-            Low = ar - rangeRadius
-            High = ar + rangeRadius
-            condList = [Low, High]
-            self.condition.append(condList)
+    def buildCF(self, elcs, max_depth, state):
+        attributes = list(range(0, elcs.env.formatData.numAttributes))
+        for i in range(100):
 
-        # Discrete attribute
-        else:
-            condList = state[attRef]
-            self.condition.append(condList)
+            cf = CodeFragment.createCodeFragment(variables=attributes, max_depth=max_depth)
+
+            result = CodeFragment.evaluate( cf, state)
+            condition = Condition(cf, max_depth,result)
+            # Check if current rule already contains this expression
+            if str(condition)[:str(condition).rfind("|")] in [str(cd)[:str(cd).rfind("|")] for cd in
+                                                              self.condition if cd.max_depth is not None]:
+                continue
+
+            return condition
+        return None
 
     # Matching
     def match(self, state, elcs):
-        for i in range(len(self.condition)):
-            specifiedIndex = self.specifiedAttList[i]
-            attributeInfoType = elcs.env.formatData.attributeInfoType[specifiedIndex]
+        condition = self.condition
 
-            # Continuous
-            if attributeInfoType:
-                instanceValue = state[specifiedIndex]
-                if elcs.match_for_missingness:
-                    if instanceValue == None:
-                        pass
-                    elif self.condition[i][0] < instanceValue < self.condition[i][1]:
-                        pass
-                    else:
-                        return False
-                else:
-                    if instanceValue == None:
-                        return False
-                    elif self.condition[i][0] < instanceValue < self.condition[i][1]:
-                        pass
-                    else:
-                        return False
+        for cd in condition:
+            if cd.is_dc:
+                continue
+            result = CodeFragment.evaluate(cd.codeFragment, state)
 
-            # Discrete
-            else:
-                stateRep = state[specifiedIndex]
-                if elcs.match_for_missingness:
-                    if stateRep == self.condition[i] or stateRep == None:
-                        pass
-                    else:
-                        return False
-                else:
-                    if stateRep == self.condition[i]:
-                        pass
-                    elif stateRep == None:
-                        return False
-                    else:
-                        return False
+            if result != cd.value:
+                return False
+
         return True
 
     def equals(self, elcs, cl):
-        if cl.phenotype == self.phenotype and len(cl.specifiedAttList) == len(self.specifiedAttList):
-            clRefs = sorted(cl.specifiedAttList)
-            selfRefs = sorted(self.specifiedAttList)
-            if clRefs == selfRefs:
-                for i in range(len(cl.specifiedAttList)):
-                    tempIndex = self.specifiedAttList.index(cl.specifiedAttList[i])
-                    if not (cl.condition[i] == self.condition[tempIndex]):
-                        return False
-                return True
+        if cl.phenotype == self.phenotype and len(cl.getWorkingCondition()) == len(self.getWorkingCondition()):
+            for cd in cl.condition:
+                if cd.is_dc:
+                    continue
+
+                idx = self.findIndexByExpression(self, cd.expression)
+                if idx is None or str(cd) != str(self.condition[idx]):
+                    return False
+            return True
+
         return False
 
     def updateNumerosity(self, num):
@@ -185,110 +163,35 @@ class Classifier:
         return False
 
     def isMoreGeneral(self, cl, elcs):
-        if len(self.specifiedAttList) >= len(cl.specifiedAttList):
+        if len(self.getWorkingCondition()) >= len(cl.getWorkingCondition()):
             return False
-        for i in range(len(self.specifiedAttList)):
-            attributeInfoType = elcs.env.formatData.attributeInfoType[self.specifiedAttList[i]]
-            if self.specifiedAttList[i] not in cl.specifiedAttList:
+
+        for i in range(len(self.condition)):
+            cd = self.condition[i]
+            if cd.is_dc:
+                continue
+            clIndex = self.findIndexByExpression(cl, cd.expression)
+            if clIndex is None:
                 return False
 
-            # Continuous
-            if attributeInfoType:
-                otherRef = cl.specifiedAttList.index(self.specifiedAttList[i])
-                if self.condition[i][0] < cl.condition[otherRef][0]:
-                    return False
-                if self.condition[i][1] > cl.condition[otherRef][1]:
-                    return False
+            if cd.value!=cl.condition[clIndex].value:
+                return False
+
         return True
 
     def uniformCrossover(self, elcs, cl):
-        if elcs.env.formatData.discretePhenotype or random.random() < 0.5:
-            p_self_specifiedAttList = copy.deepcopy(self.specifiedAttList)
-            p_cl_specifiedAttList = copy.deepcopy(cl.specifiedAttList)
+        changed = False
+        x = random.randint(0, len(self.condition))
+        y = random.randint(0, len(cl.condition))
 
-            # Make list of attribute references appearing in at least one of the parents.-----------------------------
-            comboAttList = []
-            for i in p_self_specifiedAttList:
-                comboAttList.append(i)
-            for i in p_cl_specifiedAttList:
-                if i not in comboAttList:
-                    comboAttList.append(i)
-                elif not elcs.env.formatData.attributeInfoType[i]:
-                    comboAttList.remove(i)
-            comboAttList.sort()
+        if x > y:
+            x, y = y, x
 
-            changed = False
-            for attRef in comboAttList:
-                attributeInfoType = elcs.env.formatData.attributeInfoType[attRef]
-                probability = 0.5
-                ref = 0
-                if attRef in p_self_specifiedAttList:
-                    ref += 1
-                if attRef in p_cl_specifiedAttList:
-                    ref += 1
-
-                if ref == 0:
-                    pass
-                elif ref == 1:
-                    if attRef in p_self_specifiedAttList and random.random() > probability:
-                        i = self.specifiedAttList.index(attRef)
-                        cl.condition.append(self.condition.pop(i))
-
-                        cl.specifiedAttList.append(attRef)
-                        self.specifiedAttList.remove(attRef)
-                        changed = True
-
-                    if attRef in p_cl_specifiedAttList and random.random() < probability:
-                        i = cl.specifiedAttList.index(attRef)
-                        self.condition.append(cl.condition.pop(i))
-
-                        self.specifiedAttList.append(attRef)
-                        cl.specifiedAttList.remove(attRef)
-                        changed = True
-                else:
-                    # Continuous Attribute
-                    if attributeInfoType:
-                        i_cl1 = self.specifiedAttList.index(attRef)
-                        i_cl2 = cl.specifiedAttList.index(attRef)
-                        tempKey = random.randint(0, 3)
-                        if tempKey == 0:
-                            temp = self.condition[i_cl1][0]
-                            self.condition[i_cl1][0] = cl.condition[i_cl2][0]
-                            cl.condition[i_cl2][0] = temp
-                        elif tempKey == 1:
-                            temp = self.condition[i_cl1][1]
-                            self.condition[i_cl1][1] = cl.condition[i_cl2][1]
-                            cl.condition[i_cl2][1] = temp
-                        else:
-                            allList = self.condition[i_cl1] + cl.condition[i_cl2]
-                            newMin = min(allList)
-                            newMax = max(allList)
-                            if tempKey == 2:
-                                self.condition[i_cl1] = [newMin, newMax]
-                                cl.condition.pop(i_cl2)
-
-                                cl.specifiedAttList.remove(attRef)
-                            else:
-                                cl.condition[i_cl2] = [newMin, newMax]
-                                self.condition.pop(i_cl1)
-
-                                self.specifiedAttList.remove(attRef)
-
-                    # Discrete Attribute
-                    else:
-                        pass
-
-            tempList1 = copy.deepcopy(p_self_specifiedAttList)
-            tempList2 = copy.deepcopy(cl.specifiedAttList)
-            tempList1.sort()
-            tempList2.sort()
-
-            if changed and len(set(tempList1) & set(tempList2)) == len(tempList2):
-                changed = False
-
-            return changed
-        else:
-            return self.phenotypeCrossover(cl)
+        for i in range(x, y):
+            if str(self.condition[i]) != str(cl.condition[i]):
+                self.condition[i], cl.condition[i] = cl.condition[i], self.condition[i]
+                changed = True
+        return changed
 
     def phenotypeCrossover(self, cl):
         changed = False
@@ -312,53 +215,34 @@ class Classifier:
     def Mutation(self, elcs, state, phenotype):
         changed = False
         # Mutate Condition
-        for attRef in range(elcs.env.formatData.numAttributes):
-            attributeInfoType = elcs.env.formatData.attributeInfoType[attRef]
-            if not (attributeInfoType):  # Discrete
-                attributeInfoValue = elcs.env.formatData.attributeInfoDiscrete[attRef]
-            else:
-                attributeInfoValue = elcs.env.formatData.attributeInfoContinuous[attRef]
-
-            if random.random() < elcs.mu and not(state[attRef] == None):
+        for i in range(len(self.condition)):
+            cd = self.condition[i]
+            if random.random() < elcs.mu:
                 # Mutation
-                if attRef not in self.specifiedAttList:
-                    self.specifiedAttList.append(attRef)
-                    self.buildMatch(elcs, attRef, state)
-                    changed = True
-                elif attRef in self.specifiedAttList:
-                    i = self.specifiedAttList.index(attRef)
-
-                    if not attributeInfoType or random.random() > 0.5:
-                        del self.specifiedAttList[i]
-                        del self.condition[i]
+                if cd.is_dc:
+                    # dc -> cf
+                    condition = self.buildMatch(elcs, state)
+                    if condition is not None:
+                        self.condition[i] = condition
                         changed = True
-                    else:
-                        attRange = float(attributeInfoValue[1]) - float(attributeInfoValue[0])
-                        mutateRange = random.random() * 0.5 * attRange
-                        if random.random() > 0.5:
-                            if random.random() > 0.5:
-                                self.condition[i][0] += mutateRange
-                            else:
-                                self.condition[i][0] -= mutateRange
-                        else:
-                            if random.random() > 0.5:
-                                self.condition[i][1] += mutateRange
-                            else:
-                                self.condition[i][1] -= mutateRange
-                        self.condition[i] = sorted(self.condition[i])
-                        changed = True
-
                 else:
-                    pass
+                    # cf -> dc
+                    if random.random() > 0.5:
+                        self.condition[i]= Condition()
+                        changed = True
+                    else: # cf -> new cf
+                        condition = self.buildMatch(elcs, state)
+                        if condition is not None:
+                            self.condition[i] = condition
+                            changed = True
 
         # Mutate Phenotype
         if elcs.env.formatData.discretePhenotype:
             nowChanged = self.discretePhenotypeMutation(elcs)
-        else:
-            nowChanged = self.continuousPhenotypeMutation(elcs, phenotype)
 
         if changed or nowChanged:
             return True
+
 
     def discretePhenotypeMutation(self, elcs):
         changed = False
@@ -437,3 +321,12 @@ class Classifier:
         else:
             deletionVote = self.aveMatchSetSize * self.numerosity * meanFitness / (self.fitness / self.numerosity)
         return deletionVote
+
+    def findIndexByExpression(self, cl, expression):
+        for i, cond in enumerate(cl.condition):
+            if cond.expression == expression:
+                return i
+        return None
+
+    def getWorkingCondition(self):
+        return [cd for cd in self.condition if not cd.is_dc]
