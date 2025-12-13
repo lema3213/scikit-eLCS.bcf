@@ -355,7 +355,7 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
                                                      len(self.population.popSet)))
                 self.log_trainingfile.write("{:d} {:.4f} {:d} {:d}\n".format(self.explorIter, accuracy, popNmrsty,
                                                                              len(self.population.popSet)))
-
+                self.log_trainingfile.flush()
             # test accuracy
             if self.explorIter%20000 ==0:
                 accuracy = self.score(tx, ty)
@@ -535,7 +535,8 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
     def score(self,X,y):
         predList = self.predict(X)
         accuracy_test = balanced_accuracy_score(y, predList) #Make it balanced accuracy
-        self.log_trainingfile.write("Test Accuracy: {:.4f}".format(accuracy_test))
+        self.log_trainingfile.write("Test Accuracy: {:.4f}\n".format(accuracy_test))
+        self.log_trainingfile.flush()
         print("Test Accuracy: {:.4f}".format(accuracy_test))
         return accuracy_test
 

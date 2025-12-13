@@ -16,7 +16,7 @@ start_time = time.time()
 print("Timestamp:", start_time)
 
 ftrs = "mpr37"
-data_path = r"C:\Users\lema\Documents\GitHub\datasets/"
+data_path = r"datasets\mpr/"
 
 data_path += ''
 file_name = ftrs + ".csv"
@@ -39,7 +39,7 @@ test_converter = StringEnumerator(test_file,'Class')
 test_headers, test_classLabel, test_dataFeatures, test_dataPhenotypes = test_converter.get_params()
 
 print("Model training in progress ...")
-model.fit(train_dataFeatures, train_dataPhenotypes,test_dataFeatures, test_dataPhenotypes,)
+model.fit(train_dataFeatures, train_dataPhenotypes,test_dataFeatures,test_dataPhenotypes)
 print("Model training Ends")
 
 accuracy = model.score(test_dataFeatures,test_dataPhenotypes)
