@@ -5,8 +5,16 @@ import math
 from skeLCS.CodeFragment import CodeFragment
 from skeLCS.Condition import Condition
 
+OPERATOR_ARITY = {
+    '&': 2,
+    '|': 2,
+    '~': 1,
+    'nand': 2,
+    'nor': 2,
+}
 
 class Classifier:
+
     def __init__(self,elcs,a=None,b=None,c=None,d=None):
         #Major Parameters
         self.condition = []
@@ -72,23 +80,19 @@ class Classifier:
         self.accuracy = toCopy.accuracy
 
     def buildMatch(self, elcs, state):
-        if random.random()<elcs.cf_rate:
-            max_depth = random.randint(1,3)
-        else:
-            max_depth = 0
-        return self.buildCF(elcs, max_depth, state)
-
-    def buildCF(self, elcs, max_depth, state):
         attributes = list(range(0, elcs.env.formatData.numAttributes))
         for i in range(100):
 
-            cf = CodeFragment.createCodeFragment(variables=attributes, max_depth=max_depth)
+            cf = CodeFragment.createCodeFragment(variables=attributes, max_depth=elcs.max_depth)
 
             result = CodeFragment.evaluate( cf, state)
-            condition = Condition(cf, max_depth,result)
+
+            if result ==1:
+                condition = Condition(cf)
+            else:
+                continue
             # Check if current rule already contains this expression
-            if str(condition)[:str(condition).rfind("|")] in [str(cd)[:str(cd).rfind("|")] for cd in
-                                                              self.condition if cd.max_depth is not None]:
+            if condition.expression in [cd.expression for cd in self.condition if not cd.is_dc]:
                 continue
 
             return condition
@@ -103,7 +107,7 @@ class Classifier:
                 continue
             result = CodeFragment.evaluate(cd.codeFragment, state)
 
-            if result != cd.value:
+            if result != 1:
                 return False
 
         return True
@@ -172,9 +176,6 @@ class Classifier:
                 continue
             clIndex = self.findIndexByExpression(cl, cd.expression)
             if clIndex is None:
-                return False
-
-            if cd.value!=cl.condition[clIndex].value:
                 return False
 
         return True

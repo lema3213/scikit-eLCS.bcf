@@ -17,9 +17,9 @@ import copy
 class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
     def __init__(self, learning_iterations=10000, track_accuracy_while_fit = True, N=1000, p_spec=0.5, discrete_attribute_limit=10,
                  specified_attributes = np.array([]), nu=5, chi=0.8, mu=0.04, theta_GA=25, theta_del=20, theta_sub=20,
-                 acc_sub=0.99, beta=0.2, delta=0.1, init_fit=0.01, fitness_reduction=0.1, do_correct_set_subsumption=False,
+                 acc_sub=0.99, beta=0.2, delta=0.1, init_fit=0.01, fitness_reduction=0.1, do_correct_set_subsumption=True,
                  do_GA_subsumption=True, selection_method='tournament', theta_sel=0.5, random_state = None,match_for_missingness=False,
-                 reboot_filename=None,cf_rate=0.5,log_dir="",log_trainingfile_name=""):
+                 reboot_filename=None,max_depth=0,log_dir="",log_trainingfile_name=""):
 
         '''
         :param learning_iterations:      Must be nonnegative integer. The number of training cycles to run.
@@ -235,7 +235,7 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
         self.hasTrained = False
         self.reboot_filename = reboot_filename
 
-        self.cf_rate=cf_rate
+        self.max_depth=max_depth
 
         # Reboot Population
         if self.reboot_filename != None:
@@ -346,7 +346,7 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
             self.env.newInstance()
 
             # training accuracy
-            if self.explorIter%100==0:
+            if self.explorIter%100 ==0:
                 popNmrsty = 0
                 for i in range(len(self.population.popSet)):
                     popNmrsty += self.population.popSet[i].numerosity
@@ -357,7 +357,7 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
                                                                              len(self.population.popSet)))
                 self.log_trainingfile.flush()
             # test accuracy
-            if self.explorIter%20000 ==0:
+            if self.explorIter in[5000,10000,15000,20000,30000,50000,70000,100000,150000,200000,300000,500000,700000,1000000]:
                 accuracy = self.score(tx, ty)
                 print('Test accuracy:'+str(self.explorIter)+':'+str(accuracy))
 

@@ -1,17 +1,10 @@
 import copy
-import math
 import random
-from scipy.special import expit
-import numpy as np
+import skeLCS.Classifier as Classifier
+
 
 class CodeFragment:
-    OPERATOR_ARITY = {
-        '&': 2,
-        '|': 2,
-        '~': 1,
-        'nand': 2,
-        'nor' :2,
-    }
+
 
     """
     GP tree node class:
@@ -65,16 +58,16 @@ class CodeFragment:
         return CodeFragment._generateRandomTree(variables, max_depth)
 
     @staticmethod
-    def _generateRandomTree(variables, max_depth=2, current_depth=0):
+    def _generateRandomTree(variables, max_depth=0, current_depth=0):
         if current_depth == 0:
             variables = copy.deepcopy(variables)
 
-        if current_depth == max_depth:
+        if current_depth == max_depth or random.random() > 0.5:
             position = random.choice(variables)
             return CodeFragment('D'+str(position),level=current_depth,position=position)
 
         # Randomly select an operator from OPERATOR_ARITY keys, then check arity
-        op, arity = random.choice(list(CodeFragment.OPERATOR_ARITY.items()))
+        op, arity = random.choice(list(Classifier.OPERATOR_ARITY.items()))
 
         if arity == 1:
             # Unary operator, e.g., sin
@@ -104,7 +97,7 @@ class CodeFragment:
 
         # Otherwise it's an operator node
         op = cf.value
-        arity = CodeFragment.OPERATOR_ARITY[op]
+        arity = Classifier.OPERATOR_ARITY[op]
 
         if arity == 1:
             # Unary operator (sin)
