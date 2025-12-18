@@ -32,9 +32,9 @@ train_headers, train_classLabel, train_dataFeatures, train_dataPhenotypes = trai
 
 learning_iterations = 1000000
 N = 10000
-max_depth = 5
+level = 5
 
-model = eLCS(learning_iterations=learning_iterations, N=N, p_spec=0.5, max_depth=max_depth,log_dir=log_dir, log_trainingfile_name=log_trainingfile_name)
+model = eLCS(learning_iterations=learning_iterations, N=N, p_spec=0.5, level=level,log_dir=log_dir, log_trainingfile_name=log_trainingfile_name)
 
 test_converter = StringEnumerator(test_file,'Class')
 test_headers, test_classLabel, test_dataFeatures, test_dataPhenotypes = test_converter.get_params()
