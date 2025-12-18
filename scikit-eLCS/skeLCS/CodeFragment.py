@@ -1,6 +1,7 @@
 import copy
 import random
 import skeLCS.Classifier as Classifier
+from skeLCS.TreePrint import build_tree_from_rpn
 
 
 class CodeFragment:
@@ -21,6 +22,11 @@ class CodeFragment:
         Directly call toPostfix(), display postfix expression when printing
         """
         return self.toPostfix()
+
+    def printTree(self):
+        expr = self.toPostfix()
+        tree = build_tree_from_rpn(expr)
+        print(tree)
 
     def toPostfix(self):
         """
@@ -46,26 +52,24 @@ class CodeFragment:
 
     @staticmethod
     def createCodeFragment(variables, level=1):
-        return CodeFragment._generateRandomTree(variables, level)
+        return CodeFragment._generateRandomTree(variables, max_level=level,current_level=level)
 
     @staticmethod
-    def _generateRandomTree(variables,level,current_depth=0):
-        if current_depth == 0:
-            variables = copy.deepcopy(variables)
-
-        # max depth is 2, and random terminal probability 0.5
+    def _generateRandomTree(variables,max_level,current_level=0,max_depth=2,current_depth=0):
+        # Choose terminal: depth is 2(max), or random terminal probability 0.5
         if current_depth == Classifier.MAX_DEPTH or (random.random() > 0.5):
-            if level == 1:
+            # 1 level cf, just choose a feature
+            if current_level == 1:
                 position = random.choice(variables)
                 return CodeFragment('D' + str(position), position=position)
             else:
-                if random.random() > 0.5:
+                # max_level choose a feature and probability 0.5
+                if max_level == current_level and random.random() > 0.5:
                     position = random.choice(variables)
                     return CodeFragment('D' + str(position), position=position)
-                else:
-                    # set terminal as lower level cf
-                    lower_level = random.choice(list(range(1,level)))
-                    child = CodeFragment._generateRandomTree(variables, lower_level)
+                else:# otherwise,terminal choose a lower level cf.
+                    lower_level = random.choice(list(range(1,current_level)))
+                    child = CodeFragment._generateRandomTree(variables,max_level,current_level = lower_level)
                     return child
 
         # Randomly select an operator from OPERATOR_ARITY keys, then check arity
@@ -73,12 +77,12 @@ class CodeFragment:
 
         if arity == 1:
             # Unary operator, e.g., sin
-            child = CodeFragment._generateRandomTree(variables, level, current_depth + 1)
+            child = CodeFragment._generateRandomTree(variables,max_level = max_level, current_level=current_level,current_depth= current_depth + 1)
             return CodeFragment(op, [child])
         elif arity == 2:
             # Binary operators +, -, *, /
-            left_child = CodeFragment._generateRandomTree(variables, level, current_depth + 1)
-            right_child = CodeFragment._generateRandomTree(variables, level, current_depth + 1)
+            left_child = CodeFragment._generateRandomTree(variables,max_level = max_level, current_level=current_level, current_depth=current_depth + 1)
+            right_child = CodeFragment._generateRandomTree(variables,max_level = max_level, current_level=current_level, current_depth=current_depth + 1)
             return CodeFragment(op, [left_child, right_child])
         else:
             raise Exception('Invalid arity')
