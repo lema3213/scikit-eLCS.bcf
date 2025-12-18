@@ -13,6 +13,8 @@ OPERATOR_ARITY = {
     'nor': 2,
 }
 
+MAX_DEPTH = 2
+
 class Classifier:
 
     def __init__(self,elcs,a=None,b=None,c=None,d=None):
@@ -83,7 +85,7 @@ class Classifier:
         attributes = list(range(0, elcs.env.formatData.numAttributes))
         for i in range(100):
 
-            cf = CodeFragment.createCodeFragment(variables=attributes, max_depth=elcs.max_depth)
+            cf = CodeFragment.createCodeFragment(variables=attributes, level=elcs.level)
 
             result = CodeFragment.evaluate( cf, state)
 

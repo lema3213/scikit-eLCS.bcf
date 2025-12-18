@@ -11,10 +11,9 @@ class CodeFragment:
     - value: node value (string), could be operator or variable name.
     - children: list of child nodes, unary operators (like sin) have 1 child, binary operators (like +, -, *, /) have 2 children.
     """
-    def __init__(self,value, children=None, level=0,position = None):
+    def __init__(self,value, children=None, position = None):
         self.value = value
         self.children = children if children else []
-        self.level = level
         self.position = position
 
     def __str__(self):
@@ -42,48 +41,47 @@ class CodeFragment:
             right_expr = self.children[1].toPostfix()
             return f"{left_expr} {right_expr} {self.value}"
 
-        # If it's a binary operator
-        if len(self.children) == 4:
-            first_expr = self.children[0].toPostfix()
-            second_expr = self.children[1].toPostfix()
-            third_expr = self.children[2].toPostfix()
-            forth_expr = self.children[3].toPostfix()
-            return f"{first_expr} {second_expr} {third_expr} {forth_expr} {self.value}"
-
         # Theoretically shouldn't reach here
         return str(self.value)
 
     @staticmethod
-    def createCodeFragment(variables, max_depth):
-        return CodeFragment._generateRandomTree(variables, max_depth)
+    def createCodeFragment(variables, level=1):
+        return CodeFragment._generateRandomTree(variables, level)
 
     @staticmethod
-    def _generateRandomTree(variables, max_depth=0, current_depth=0):
+    def _generateRandomTree(variables,level,current_depth=0):
         if current_depth == 0:
             variables = copy.deepcopy(variables)
 
-        if current_depth == max_depth or random.random() > 0.5:
-            position = random.choice(variables)
-            return CodeFragment('D'+str(position),level=current_depth,position=position)
+        # max depth is 2, and random terminal probability 0.5
+        if current_depth == Classifier.MAX_DEPTH or (random.random() > 0.5):
+            if level == 1:
+                position = random.choice(variables)
+                return CodeFragment('D' + str(position), position=position)
+            else:
+                if random.random() > 0.5:
+                    position = random.choice(variables)
+                    return CodeFragment('D' + str(position), position=position)
+                else:
+                    # set terminal as lower level cf
+                    lower_level = random.choice(list(range(1,level)))
+                    child = CodeFragment._generateRandomTree(variables, lower_level)
+                    return child
 
         # Randomly select an operator from OPERATOR_ARITY keys, then check arity
         op, arity = random.choice(list(Classifier.OPERATOR_ARITY.items()))
 
         if arity == 1:
             # Unary operator, e.g., sin
-            child = CodeFragment._generateRandomTree(variables, max_depth, current_depth + 1)
-            return CodeFragment(op, [child],level=current_depth)
+            child = CodeFragment._generateRandomTree(variables, level, current_depth + 1)
+            return CodeFragment(op, [child])
         elif arity == 2:
             # Binary operators +, -, *, /
-            left_child = CodeFragment._generateRandomTree(variables, max_depth, current_depth + 1)
-            right_child = CodeFragment._generateRandomTree(variables, max_depth, current_depth + 1)
-            return CodeFragment(op, [left_child, right_child], level=current_depth)
-        elif arity == 4:
-            first_child = CodeFragment._generateRandomTree(variables, max_depth, current_depth + 1)
-            second_child = CodeFragment._generateRandomTree(variables, max_depth, current_depth + 1)
-            third_child = CodeFragment._generateRandomTree(variables, max_depth, current_depth + 1)
-            forth_child = CodeFragment._generateRandomTree(variables, max_depth, current_depth + 1)
-            return CodeFragment(op, [first_child, second_child, third_child, forth_child], level=current_depth)
+            left_child = CodeFragment._generateRandomTree(variables, level, current_depth + 1)
+            right_child = CodeFragment._generateRandomTree(variables, level, current_depth + 1)
+            return CodeFragment(op, [left_child, right_child])
+        else:
+            raise Exception('Invalid arity')
 
     @staticmethod
     def evaluate(cf, state):

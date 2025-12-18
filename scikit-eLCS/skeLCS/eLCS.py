@@ -19,7 +19,7 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
                  specified_attributes = np.array([]), nu=5, chi=0.8, mu=0.04, theta_GA=25, theta_del=20, theta_sub=20,
                  acc_sub=0.99, beta=0.2, delta=0.1, init_fit=0.01, fitness_reduction=0.1, do_correct_set_subsumption=True,
                  do_GA_subsumption=True, selection_method='tournament', theta_sel=0.5, random_state = None,match_for_missingness=False,
-                 reboot_filename=None,max_depth=0,log_dir="",log_trainingfile_name=""):
+                 reboot_filename=None,level=0,log_dir="",log_trainingfile_name=""):
 
         '''
         :param learning_iterations:      Must be nonnegative integer. The number of training cycles to run.
@@ -235,7 +235,7 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
         self.hasTrained = False
         self.reboot_filename = reboot_filename
 
-        self.max_depth=max_depth
+        self.level=level
 
         # Reboot Population
         if self.reboot_filename != None:
