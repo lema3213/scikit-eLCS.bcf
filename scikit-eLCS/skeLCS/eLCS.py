@@ -357,9 +357,9 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
                                                                              len(self.population.popSet)))
                 self.log_trainingfile.flush()
             # test accuracy
-            if self.explorIter in[5000,10000,15000,20000,30000,50000,70000,100000,150000,200000,300000,500000,700000,1000000]:
-                accuracy = self.score(tx, ty)
-                print('Test accuracy:'+str(self.explorIter)+':'+str(accuracy))
+            # if self.explorIter in[5000,10000,15000,20000,30000,50000,70000,100000,150000,200000,300000,500000,700000,1000000]:
+            #     accuracy = self.score(tx, ty)
+            #     print('Test accuracy:'+str(self.explorIter)+':'+str(accuracy))
 
         self.saveFinalMetrics()
         self.hasTrained = True
