@@ -110,18 +110,23 @@ class CodeFragment:
 
     @staticmethod
     def _generateRandomTree(variables,max_level,current_level=0,max_depth=2,current_depth=0):
-        # Choose terminal: depth is 2(max), or random terminal probability 0.5
+        # Terminal stop condition:
+        # - Stop if current_depth reaches MAX_DEPTH, OR
+        # - Stop early with 50% probability (random.random() > 0.5)
         if current_depth == CodeFragment.MAX_DEPTH or (random.random() > 0.5):
-            # 1 level cf, just choose a feature
+            # Level-1 CF: terminal must be a raw feature D<idx>
             if current_level == 1:
                 position = random.choice(variables)
                 return CodeFragment('D' + str(position), position=position)
             else:
-                # max_level choose a feature and probability 0.5
+                # For higher-level CFs:
+                # - If we are generating at the top level (current_level == max_level),
+                #   we allow directly choosing a raw feature with 50% probability.
                 if max_level == current_level and random.random() > 0.5:
                     position = random.choice(variables)
                     return CodeFragment('D' + str(position), position=position)
-                else:# otherwise,terminal choose a lower level cf.
+                else:
+                    # Otherwise, choose a lower-level CF (1 .. current_level-1) and reuse it
                     lower_level = random.choice(list(range(1,current_level)))
 
                     if lower_level == 1 and CodeFragment.CF_L1:
@@ -146,19 +151,20 @@ class CodeFragment:
                         child = CodeFragment._generateRandomTree(variables,max_level,current_level = lower_level)
                     return child
 
-        # Randomly select an operator from OPERATOR_ARITY keys, then check arity
+        # Non-terminal: randomly select an operator and its arity from OPERATOR_ARITY
         op, arity = random.choice(list(CodeFragment.OPERATOR_ARITY.items()))
 
         if arity == 1:
-            # Unary operator, e.g., sin
+            # Unary operator: generate one child subtree
             child = CodeFragment._generateRandomTree(variables,max_level = max_level, current_level=current_level,current_depth= current_depth + 1)
             return CodeFragment(op, [child])
         elif arity == 2:
-            # Binary operators +, -, *, /
+            # Binary operator: generate left and right child subtrees
             left_child = CodeFragment._generateRandomTree(variables,max_level = max_level, current_level=current_level, current_depth=current_depth + 1)
             right_child = CodeFragment._generateRandomTree(variables,max_level = max_level, current_level=current_level, current_depth=current_depth + 1)
             return CodeFragment(op, [left_child, right_child])
         else:
+            # Guard: OPERATOR_ARITY should only contain unary/binary operators
             raise Exception('Invalid arity')
 
     @staticmethod
