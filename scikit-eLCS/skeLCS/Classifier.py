@@ -4,17 +4,6 @@ import math
 
 from skeLCS.CodeFragment import CodeFragment
 from skeLCS.Condition import Condition
-
-OPERATOR_ARITY = {
-    '&': 2,
-    '|': 2,
-    '~': 1,
-    'nand': 2,
-    'nor': 2,
-}
-
-MAX_DEPTH = 2
-
 class Classifier:
 
     def __init__(self,elcs,a=None,b=None,c=None,d=None):

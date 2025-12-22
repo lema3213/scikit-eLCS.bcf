@@ -119,7 +119,7 @@ class IterationRecord():
         with open(filename, mode='w',newline="",) as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-            writer.writerow(["Specified Values","Specified Attribute Names"]+[className]+["Fitness","Accuracy","Numerosity","Avg Match Set Size","TimeStamp GA","Iteration Initialized","Specificity","Deletion Probability","Correct Count","Match Count"])
+            writer.writerow(["Code Fragments"]+ ["Fitness","Accuracy","Numerosity","Avg Match Set Size","TimeStamp GA","Iteration Initialized","Specificity","Deletion Probability","Correct Count","Match Count"])
 
             classifiers = elcs.population.popSet
             for classifier in classifiers:

@@ -16,7 +16,7 @@ start_time = time.time()
 print("Timestamp:", start_time)
 
 ftrs = "mpr135"
-data_path = r"datasets/mpr/"
+data_path = r"C:\Users\lema\PycharmProjects\FV\new_dataset/"
 
 data_path += ''
 file_name = ftrs + ".csv"

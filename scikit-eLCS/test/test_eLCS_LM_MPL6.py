@@ -16,7 +16,7 @@ start_time = time.time()
 print("Timestamp:", start_time)
 
 ftrs = "mpr6"
-data_path = r"C:\Users\lema\PycharmProjects\FV\new_dataset/"
+data_path = r"datasets/mpr/"
 
 data_path += ''
 file_name = ftrs + ".csv"
@@ -47,9 +47,9 @@ accuracy = model.score(test_dataFeatures,test_dataPhenotypes)
 #model.log_trainingfile.close()
 
 print(accuracy)
-#filename = ftrs +  "_export.csv"
+filename = ftrs +  "_export6.csv"
 
-#model.export_final_rule_population(filename=filename)
+model.export_final_rule_population(filename=filename)
 
 elapsed = time.time() - start_time
 hours, rem = divmod(elapsed, 3600)

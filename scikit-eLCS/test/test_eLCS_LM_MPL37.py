@@ -15,8 +15,8 @@ if __name__ == '__main__':
 start_time = time.time()
 print("Timestamp:", start_time)
 
-ftrs = "mpr37"
-data_path = r"C:\Users\lema\PycharmProjects\FV\new_dataset/"
+ftrs = "mpr37ca"
+data_path = r"datasets/mpr/"
 
 data_path += ''
 file_name = ftrs + ".csv"
@@ -30,11 +30,11 @@ log_trainingfile_name = os.path.basename(__file__)+"log_" + ftrs + "_" + str(ran
 train_converter = StringEnumerator(train_file,'Class')
 train_headers, train_classLabel, train_dataFeatures, train_dataPhenotypes = train_converter.get_params()
 
-learning_iterations = 200000
+learning_iterations = 100000
 N = 5000
 level = 4
 
-model = eLCS(learning_iterations=learning_iterations, N=N, p_spec=0.5, level=level,log_dir=log_dir, log_trainingfile_name=log_trainingfile_name)
+model = eLCS(learning_iterations=learning_iterations, N=N, p_spec=0.66, level=level,log_dir=log_dir, log_trainingfile_name=log_trainingfile_name)
 
 test_converter = StringEnumerator(test_file,'Class')
 test_headers, test_classLabel, test_dataFeatures, test_dataPhenotypes = test_converter.get_params()
@@ -47,9 +47,9 @@ accuracy = model.score(test_dataFeatures,test_dataPhenotypes)
 #model.log_trainingfile.close()
 
 print(accuracy)
-#filename = ftrs +  "_export.csv"
+filename = ftrs +  "_export37.csv"
 
-#model.export_final_rule_population(filename=filename)
+model.export_final_rule_population(filename=filename)
 
 elapsed = time.time() - start_time
 hours, rem = divmod(elapsed, 3600)

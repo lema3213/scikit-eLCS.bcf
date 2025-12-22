@@ -15,7 +15,7 @@ if __name__ == '__main__':
 start_time = time.time()
 print("Timestamp:", start_time)
 
-ftrs = "mpr20"
+ftrs = "mpr11"
 data_path = r"datasets/mpr/"
 
 data_path += ''
@@ -30,9 +30,9 @@ log_trainingfile_name = os.path.basename(__file__)+"log_" + ftrs + "_" + str(ran
 train_converter = StringEnumerator(train_file,'Class')
 train_headers, train_classLabel, train_dataFeatures, train_dataPhenotypes = train_converter.get_params()
 
-learning_iterations = 30000
-N = 2000
-level = 3
+learning_iterations = 20000
+N = 1000
+level = 2
 
 model = eLCS(learning_iterations=learning_iterations, N=N, p_spec=0.66, level=level,log_dir=log_dir, log_trainingfile_name=log_trainingfile_name)
 
@@ -47,7 +47,7 @@ accuracy = model.score(test_dataFeatures,test_dataPhenotypes)
 #model.log_trainingfile.close()
 
 print(accuracy)
-filename = ftrs +  "_export20.csv"
+filename = ftrs +  "_export11.csv"
 
 model.export_final_rule_population(filename=filename)
 

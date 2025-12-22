@@ -1,3 +1,5 @@
+import pandas as pd
+
 from skeLCS.OfflineEnvironment import OfflineEnvironment
 from skeLCS.ClassifierSet import ClassifierSet
 from skeLCS.Classifier import Classifier
@@ -14,7 +16,11 @@ import time
 import pickle
 import copy
 
+
+
 class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
+
+
     def __init__(self, learning_iterations=10000, track_accuracy_while_fit = True, N=1000, p_spec=0.5, discrete_attribute_limit=10,
                  specified_attributes = np.array([]), nu=5, chi=0.8, mu=0.04, theta_GA=25, theta_del=20, theta_sub=20,
                  acc_sub=0.99, beta=0.2, delta=0.1, init_fit=0.01, fitness_reduction=0.1, do_correct_set_subsumption=True,
@@ -250,6 +256,9 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
         self.log_trainingfile = open(log_trainingfile_path, 'w', newline='')
         self.log_trainingfile.write("IterationNo Accuracy PopulationNumerosity Population\n")
 
+
+
+
     def checkIsInt(self,num):
         try:
             n = float(num)
@@ -356,10 +365,10 @@ class eLCS(BaseEstimator,ClassifierMixin, RegressorMixin):
                 self.log_trainingfile.write("{:d} {:.4f} {:d} {:d}\n".format(self.explorIter, accuracy, popNmrsty,
                                                                              len(self.population.popSet)))
                 self.log_trainingfile.flush()
-            # test accuracy
-            if self.explorIter in[5000,10000,15000,20000,30000,50000,70000,100000,150000,200000,300000,500000,700000,1000000]:
-                accuracy = self.score(tx, ty)
-                print('Test accuracy:'+str(self.explorIter)+':'+str(accuracy))
+            # # test accuracy
+            # if self.explorIter in[5000,10000,15000,20000,30000,50000,70000,100000,150000,200000,300000,500000,700000,1000000]:
+            #     accuracy = self.score(tx, ty)
+            #     print('Test accuracy:'+str(self.explorIter)+':'+str(accuracy))
 
         self.saveFinalMetrics()
         self.hasTrained = True

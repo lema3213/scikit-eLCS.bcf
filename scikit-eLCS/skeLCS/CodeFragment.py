@@ -1,10 +1,64 @@
-import copy
 import random
+import re
+
+import pandas as pd
+
 import skeLCS.Classifier as Classifier
 from skeLCS.TreePrint import build_tree_from_rpn
-
-
 class CodeFragment:
+    OPERATOR_ARITY = {
+        '&': 2,
+        '|': 2,
+        '~': 1,
+        'nand': 2,
+        'nor': 2,
+    }
+
+    MAX_DEPTH = 2
+
+    path_l1 = r"../MetaData/CF_L1.csv"
+    path_l2 = r"../MetaData/CF_L2.csv"
+    path_l3 = r"../MetaData/CF_L3.csv"
+    path_l4 = r"../MetaData/CF_L4.csv"
+    path_l5 = r"../MetaData/CF_L5.csv"
+    path_l6 = r"../MetaData/CF_L6.csv"
+
+    try:
+        df = pd.read_csv(path_l1)
+        CF_L1 = df.iloc[:, 0].dropna().astype(str).tolist()
+    except Exception:
+        CF_L1 = []
+
+    try:
+        df = pd.read_csv(path_l2)
+        CF_L2 = df.iloc[:, 0].dropna().astype(str).tolist()
+    except Exception:
+        CF_L2 = []
+
+    try:
+        df = pd.read_csv(path_l3)
+        CF_L3 = df.iloc[:, 0].dropna().astype(str).tolist()
+    except Exception:
+        CF_L3 = []
+
+    try:
+        df = pd.read_csv(path_l4)
+        CF_L4 = df.iloc[:, 0].dropna().astype(str).tolist()
+    except Exception:
+        CF_L4 = []
+
+    try:
+        df = pd.read_csv(path_l5)
+        CF_L5 = df.iloc[:, 0].dropna().astype(str).tolist()
+    except Exception:
+        CF_L5 = []
+
+    try:
+        df = pd.read_csv(path_l6)
+        CF_L6 = df.iloc[:, 0].dropna().astype(str).tolist()
+    except Exception:
+        CF_L6 = []
+
 
 
     """
@@ -57,7 +111,7 @@ class CodeFragment:
     @staticmethod
     def _generateRandomTree(variables,max_level,current_level=0,max_depth=2,current_depth=0):
         # Choose terminal: depth is 2(max), or random terminal probability 0.5
-        if current_depth == Classifier.MAX_DEPTH or (random.random() > 0.5):
+        if current_depth == CodeFragment.MAX_DEPTH or (random.random() > 0.5):
             # 1 level cf, just choose a feature
             if current_level == 1:
                 position = random.choice(variables)
@@ -69,11 +123,31 @@ class CodeFragment:
                     return CodeFragment('D' + str(position), position=position)
                 else:# otherwise,terminal choose a lower level cf.
                     lower_level = random.choice(list(range(1,current_level)))
-                    child = CodeFragment._generateRandomTree(variables,max_level,current_level = lower_level)
+
+                    if lower_level == 1 and CodeFragment.CF_L1:
+                        postfix = random.choice(CodeFragment.CF_L1)
+                        child = CodeFragment.fromPostfix(postfix)
+                    elif lower_level == 2 and CodeFragment.CF_L2:
+                        postfix = random.choice(CodeFragment.CF_L2)
+                        child = CodeFragment.fromPostfix(postfix)
+                    elif lower_level == 3 and CodeFragment.CF_L3:
+                        postfix = random.choice(CodeFragment.CF_L3)
+                        child = CodeFragment.fromPostfix(postfix)
+                    elif lower_level == 4 and CodeFragment.CF_L4:
+                        postfix = random.choice(CodeFragment.CF_L4)
+                        child = CodeFragment.fromPostfix(postfix)
+                    elif lower_level == 5 and CodeFragment.CF_L5:
+                        postfix = random.choice(CodeFragment.CF_L5)
+                        child = CodeFragment.fromPostfix(postfix)
+                    elif lower_level == 6 and CodeFragment.CF_L6:
+                        postfix = random.choice(CodeFragment.CF_L6)
+                        child = CodeFragment.fromPostfix(postfix)
+                    else:
+                        child = CodeFragment._generateRandomTree(variables,max_level,current_level = lower_level)
                     return child
 
         # Randomly select an operator from OPERATOR_ARITY keys, then check arity
-        op, arity = random.choice(list(Classifier.OPERATOR_ARITY.items()))
+        op, arity = random.choice(list(CodeFragment.OPERATOR_ARITY.items()))
 
         if arity == 1:
             # Unary operator, e.g., sin
@@ -99,7 +173,7 @@ class CodeFragment:
 
         # Otherwise it's an operator node
         op = cf.value
-        arity = Classifier.OPERATOR_ARITY[op]
+        arity = CodeFragment.OPERATOR_ARITY[op]
 
         if arity == 1:
             # Unary operator (sin)
@@ -117,7 +191,7 @@ class CodeFragment:
             elif op == '|':
                 return 1 if (left_val == 1 or right_val == 1) else 0
             elif op == 'nand':
-                return 1 if (left_val == 1 and right_val == 1) else 1
+                return 0 if (left_val == 1 and right_val == 1) else 1
             elif op == 'nor':
                 return 1 if (left_val == 0 and right_val == 0) else 0
 
@@ -129,3 +203,68 @@ class CodeFragment:
             result = third_val if first_val > second_val else forth_val
             return result
 
+    @staticmethod
+    def fromPostfix(postfix: str):
+        """
+        Parse a postfix (RPN) string back into a CodeFragment tree.
+
+        Terminals:
+          - D<int> (e.g., D3, D16) -> leaf node, position=<int>
+
+        Operators:
+          - Must exist in CodeFragment.OPERATOR_ARITY
+          - Unary operators pop 1 operand
+          - Binary operators pop 2 operands (order matters: left then right)
+
+        Returns:
+          - The root CodeFragment node
+
+        Raises:
+          - ValueError for invalid postfix strings or unknown tokens
+        """
+        if postfix is None:
+            raise ValueError("postfix is None")
+
+        tokens = postfix.strip().split()
+        if not tokens:
+            raise ValueError("Empty postfix string")
+
+        term_pat = re.compile(r"^D(\d+)$")
+        stack = []
+
+        for tok in tokens:
+            # Operator token
+            if tok in CodeFragment.OPERATOR_ARITY:
+                arity = CodeFragment.OPERATOR_ARITY[tok]
+                if len(stack) < arity:
+                    raise ValueError(f"Invalid postfix: not enough operands for operator '{tok}'")
+
+                if arity == 1:
+                    child = stack.pop()
+                    stack.append(CodeFragment(tok, [child]))
+
+                elif arity == 2:
+                    right = stack.pop()
+                    left = stack.pop()
+                    stack.append(CodeFragment(tok, [left, right]))
+
+                else:
+                    # Reserved for future multi-arity operators (e.g., arity=4)
+                    children = [stack.pop() for _ in range(arity)][::-1]
+                    stack.append(CodeFragment(tok, children))
+
+                continue
+
+            # Terminal token (leaf), e.g., D16
+            m = term_pat.match(tok)
+            if m:
+                pos = int(m.group(1))
+                stack.append(CodeFragment('D' + str(pos), position=pos))
+                continue
+
+            raise ValueError(f"Unknown token in postfix: '{tok}'")
+
+        if len(stack) != 1:
+            raise ValueError(f"Invalid postfix: stack has {len(stack)} items after parsing (expected 1)")
+
+        return stack[0]
